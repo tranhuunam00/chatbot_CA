@@ -1,6 +1,7 @@
 import os
 import requests
 from dotenv import load_dotenv
+import glob
 
 from langchain_community.document_loaders import TextLoader
 from langchain_community.vectorstores import FAISS
@@ -13,15 +14,17 @@ api_key = os.getenv("GOOGLE_API_KEY")
 if not api_key:
     raise EnvironmentError("❌ Thiếu GOOGLE_API_KEY trong file .env")
 
-# 2. Load tài liệu từ file
-file_path = "data/raw.txt"
-loader = TextLoader(file_path, encoding="utf-8")
-documents = loader.load()
-print("✅ Đã load tài liệu")
+# 2. Load tất cả tài liệu từ folder "data"
+all_documents = []
+file_paths = glob.glob("data/*.txt")
+for path in file_paths:
+    loader = TextLoader(path, encoding="utf-8")
+    all_documents.extend(loader.load())
+print(f"✅ Đã load {len(file_paths)} file văn bản")
 
 # 3. Chia nhỏ văn bản để index
-splitter = CharacterTextSplitter(chunk_size=500, chunk_overlap=50)
-chunks = splitter.split_documents(documents)
+splitter = CharacterTextSplitter(chunk_size=200, chunk_overlap=50)
+chunks = splitter.split_documents(all_documents)
 print(f"✅ Đã chia thành {len(chunks)} đoạn")
 
 # 4. Tạo embedding bằng Gemini
@@ -60,23 +63,24 @@ def generate_from_prompt(prompt: str) -> str:
 def create_prompt(query: str, docs: list) -> str:
     data = "\n\n".join([doc.page_content for doc in docs])
     return f"""
-    Bạn là một chuyên gia trí tuệ nhân tạo chuyên về **pháp luật và thủ tục trong lĩnh vực Công an**.
-    Dưới đây là các thông tin đã được trích xuất từ tài liệu pháp luật và hướng dẫn chính thức:
+Bạn là một trợ lý ảo được huấn luyện chuyên sâu về **thủ tục hành chính và các quy định pháp luật trong lĩnh vực Công an** Việt Nam.
+Dưới đây là các thông tin đã được trích xuất từ tài liệu chính thức (văn bản pháp luật, hướng dẫn từ Bộ Công an):
 
-    {data}
+{data}
 
-    Dựa vào các thông tin trên, hãy trả lời câu hỏi sau bằng tiếng Việt:
-    "{query}"
+Hãy sử dụng các thông tin trên để trả lời cho câu hỏi sau bằng tiếng Việt, rõ ràng, chính xác và có căn cứ pháp lý:
+"{query}"
 
-    ⚠️ Lưu ý:
-    - Chỉ trả lời nếu câu hỏi liên quan đến lĩnh vực Công an, bao gồm: thủ tục hành chính, pháp luật hình sự, an ninh trật tự, xử lý vi phạm, v.v.
-    - Nếu không liên quan, hãy trả lời: "Xin lỗi, tôi chỉ hỗ trợ các câu hỏi liên quan đến lĩnh vực Công an."
-    - Trả lời chính xác, rõ ràng, có dẫn chiếu đến quy định pháp luật nếu có.
-    """
+⚠️ Yêu cầu:
+- Ưu tiên các nội dung liên quan đến thủ tục hành chính (hộ khẩu, CCCD, cư trú, xử phạt hành chính, xuất nhập cảnh, đăng ký phương tiện, v.v.).
+- Nếu câu hỏi liên quan đến hình sự, quy định pháp luật, hành vi vi phạm,... vẫn có thể trả lời nếu nằm trong phạm vi các tài liệu đã cung cấp.
+- Nếu không đủ thông tin để trả lời, hãy nói rõ điều đó một cách lịch sự và trung thực.
+- Trả lời có cấu trúc, chính xác, đúng quy định, có thể nêu các bước, hồ sơ, mức phạt hoặc điều khoản pháp luật tương ứng.
+"""
 
 
 # 8. Demo truy vấn
-query = "tội cưỡng ép người khác trốn đi nước ngoài hoặc ở lại nước ngoài"
+query = "Thông tin trên giấy tờ xuất nhập cảnh bao gồm"
 docs = db.similarity_search(query, k=3)
 prompt = create_prompt(query, docs)
 response = generate_from_prompt(prompt)

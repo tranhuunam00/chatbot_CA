@@ -14,7 +14,7 @@ api_key = os.getenv("GOOGLE_API_KEY")
 if not api_key:
     raise EnvironmentError("❌ Thiếu GOOGLE_API_KEY trong file .env")
 
-# 2. Load tất cả tài liệu từ folder "data"
+# 2. Load tất cả tài liệu từ thư mục "data"
 all_documents = []
 file_paths = glob.glob("data/*.txt")
 for path in file_paths:
@@ -34,7 +34,7 @@ embedding = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
 db = FAISS.from_documents(chunks, embedding)
 print("✅ Đã tạo FAISS vector store thành công")
 
-# 6. Hàm gọi Gemini API sinh văn bản (dùng gemini-2.0-flash)
+# 6. Hàm gọi Gemini API để sinh văn bản
 
 
 def generate_from_prompt(prompt: str) -> str:
@@ -57,30 +57,30 @@ def generate_from_prompt(prompt: str) -> str:
         print("🌐 Lỗi kết nối Gemini API:", e)
         return "❌ Lỗi không truy xuất được câu trả lời từ Gemini."
 
-# 7. Hàm tạo prompt từ câu hỏi và dữ liệu truy vấn
+# 7. Hàm tạo prompt từ câu hỏi và nội dung tài liệu
 
 
 def create_prompt(query: str, docs: list) -> str:
     data = "\n\n".join([doc.page_content for doc in docs])
     return f"""
-Bạn là một trợ lý ảo được huấn luyện chuyên sâu về **thủ tục hành chính và các quy định pháp luật trong lĩnh vực Công an** Việt Nam.
-Dưới đây là các thông tin đã được trích xuất từ tài liệu chính thức (văn bản pháp luật, hướng dẫn từ Bộ Công an):
+Bạn là một trợ lý ảo được huấn luyện chuyên sâu về **Y học giấc ngủ** và các kiến thức giảng dạy trong chương trình đào tạo 6 tháng của **Hội Y học Giấc ngủ Việt Nam**.
+
+Dưới đây là các thông tin trích xuất từ tài liệu chính thức:
 
 {data}
 
-Hãy sử dụng các thông tin trên để trả lời cho câu hỏi sau bằng tiếng Việt, rõ ràng, chính xác và có căn cứ pháp lý:
+Hãy sử dụng các thông tin trên để trả lời câu hỏi sau bằng tiếng Việt, rõ ràng, chính xác và có căn cứ khoa học:
 "{query}"
 
 ⚠️ Yêu cầu:
-- Ưu tiên các nội dung liên quan đến thủ tục hành chính (hộ khẩu, CCCD, cư trú, xử phạt hành chính, xuất nhập cảnh, đăng ký phương tiện, v.v.).
-- Nếu câu hỏi liên quan đến hình sự, quy định pháp luật, hành vi vi phạm,... vẫn có thể trả lời nếu nằm trong phạm vi các tài liệu đã cung cấp.
-- Nếu không đủ thông tin để trả lời, hãy nói rõ điều đó một cách lịch sự và trung thực.
-- Trả lời có cấu trúc, chính xác, đúng quy định, có thể nêu các bước, hồ sơ, mức phạt hoặc điều khoản pháp luật tương ứng.
+- Trả lời đúng nội dung chuyên ngành y học giấc ngủ, đặc biệt các chủ đề như: sinh lý học giấc ngủ, các rối loạn giấc ngủ, kỹ thuật chẩn đoán, điều trị bằng CPAP, kỹ năng thực hành lâm sàng, đánh giá đầu ra, cấu trúc khóa học, v.v.
+- Nếu không đủ thông tin để trả lời, hãy nêu rõ điều đó một cách lịch sự và trung thực.
+- Trả lời có cấu trúc, rõ ràng, dễ hiểu, đúng với chương trình đào tạo và thuật ngữ chuyên ngành.
 """
 
 
-# 8. Demo truy vấn
-query = "Thông tin trên giấy tờ xuất nhập cảnh bao gồm"
+# 8. Demo truy vấn thử
+query = "Tổng số tiết thực hành trong chương trình là bao nhiêu?"
 docs = db.similarity_search(query, k=3)
 prompt = create_prompt(query, docs)
 response = generate_from_prompt(prompt)

@@ -49,3 +49,21 @@ Chỉnh sửa
 python3.13 --version
 
 python3.13 -m ensurepip --upgrade
+
+////////////////
+
+sudo apt update
+sudo apt install -y python3-venv python3-pip
+
+cd ~/chatbot_CA
+python3 -m venv venv
+source venv/bin/activate
+
+pip install --upgrade pip
+pip install -r requirements.txt
+
+python -m uvicorn main:app --host 0.0.0.0 --port 8000
+
+pm2 start "venv/bin/python -m uvicorn main:app --host 0.0.0.0 --port 8000" --name yhgn-api
+pm2 save
+pm2 startup
